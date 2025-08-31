@@ -1,0 +1,7 @@
+# Diapositivas de Estadística Multivariada
+
+ENES Morelia Semestre 2026-1
+
+Adriana Haydeé Contreras Peruyero
+
+## [Plots_Multivariados](https://haydeeperuyero.github.io/Diapositivas_Est_Multi/plots_multivariados/plots_multivariados.html)
