@@ -1,0 +1,301 @@
+---
+title: "Análisis de Componentes Principales"
+subtitle: "Estadística Multivariada"
+author: "Haydeé Peruyero"
+institute: "ENES Morelia"
+output:
+  xaringan::moon_reader:
+    css: 
+      - xaringan-themer.css
+      - css/mi-tema.css
+    lib_dir: libs
+    seal: false
+    self_contained: true
+    nature:
+      highlightStyle: googlecode
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: 16:9
+      beforeInit: "macros.js"
+      slideNumberFormat: |
+        <div class="progress-bar-container">
+          <div class="progress-bar" style="width: calc(%current% / %total% * 100%);">
+          </div>
+        </div>
+
+---
+```{r setup, include = FALSE}
+options(htmltools.dir.version = FALSE)
+library(knitr)
+library(tidyverse)
+library(xaringanExtra)
+library(icons)
+library(fontawesome)
+library(emo)
+
+# set default options
+opts_chunk$set(collapse = TRUE,
+               dpi = 300,
+               comment = "#",
+               message = FALSE,
+               warning = FALSE)
+
+knit_engines$set("yaml", "markdown")
+
+xaringanExtra::use_tile_view()
+xaringanExtra::use_clipboard()
+
+xaringanExtra::use_panelset()
+
+xaringanExtra::use_share_again()
+xaringanExtra::style_share_again(
+  share_buttons = c("twitter", "linkedin")
+)
+xaringanExtra::use_extra_styles(
+  hover_code_line = TRUE,         #<<
+  mute_unhighlighted_code = TRUE  #<<
+)
+```
+
+```{r xaringan-editable, echo=FALSE}
+xaringanExtra::use_editable(expires = 1)
+xaringanExtra::use_scribble()
+
+```
+
+```{r xaringan-themer, include=FALSE, warning=FALSE}
+library(xaringanthemer)
+style_mono_light(base_color = "#003062")
+```
+
+
+class: title-slide, middle, center
+background-image: url(img/LOGOCCM-GRIS.png), url(img/P3.png)
+background-position: 50% 10%, 75% 75%
+background-size: 15%, cover
+
+.center-column[
+# .my-gold[`r rmarkdown::metadata$title`]
+### .my-gold[`r rmarkdown::metadata$subtitle`]
+
+####`r rmarkdown::metadata$author` 
+#### `r rmarkdown::metadata$date`
+]
+
+.white[.left[.footnote[Based in Overleaf template CCM3[Overleaf template CCM3](https://www.overleaf.com/latex/templates/ccm-beamer-template-3/bfqcwdmwkxkx)]]]
+
+---
+background-image: url(img/FONDO.png)
+background-size: cover
+class: middle, center
+
+# Análisis de Componentes Principales
+
+El análisis de componentes principales tiene como objetivo reducir la dimensión y conservar en lo posible la estructura de estos, la cual no depende de los ejes utilizados para las coordenadas. 
+
+Dadas $n$ observaciones de $p$ variables, se analiza si es posible representar adecuadamente la información con un número menor de variables construidas como **combinaciones lineales** de las originales. 
+
+El **primer componente principal** es la combinación lineal de las variables originales que tienen **varianza máxima**.
+
+---
+background-image: url(img/FONDO.png)
+background-size: cover
+class: middle
+
+.pull-left[
+
+### Ejemplo introductorio (PCA en 2D)
+
+Imaginemos que tenemos dos mediciones para un conjunto de ciudades:
+
+- $x_1$: **temperatura media anual**  
+- $x_2$: **precipitación media anual**
+
+Cada ciudad se representa como un punto en el plano $(x_1, x_2)$.  
+Si dibujamos la nube de puntos, suele verse **alargada** en alguna dirección.
+]
+
+.pull-right[
+```{r plot1, echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=5}
+# Datos de 20 ciudades
+ciudades <- data.frame(
+  Ciudad = paste0("Ciudad_", 1:20),
+  Temperatura_media = c(14.4, 28.8, 23.3, 20.0, 8.9, 8.9, 6.5, 26.7, 20.0, 22.7,
+                       5.5, 29.2, 25.8, 10.3, 9.5, 9.6, 12.6, 18.1, 15.8, 12.3),
+  Precipitacion_media = c(983, 1455, 1451, 1098, 588, 459, 231, 1767, 1429, 1184,
+                          364, 1579, 1192, 736, 704, 819, 780, 782, 1147, 739)
+)
+
+# Plot
+library(ggplot2)
+library(ggrepel)
+
+X <- ciudades[, c("Temperatura_media", "Precipitacion_media")]
+mu <- colMeans(X)
+pr <- prcomp(X, center = TRUE, scale. = TRUE)
+sd_orig <- apply(X, 2, sd)
+dir1 <- as.numeric(sd_orig * pr$rotation[, 1])  
+dir2 <- as.numeric(sd_orig * pr$rotation[, 2])  
+rx <- range(X[,1]); ry <- range(X[,2])
+max_span <- max(diff(rx), diff(ry))
+scaleL <- function(v) max_span / (2 * max(abs(v)))  
+L1 <- scaleL(dir1); L2 <- scaleL(dir2)
+pc1_seg <- data.frame(
+  x    = mu[1] - L1*dir1[1], y    = mu[2] - L1*dir1[2],
+  xend = mu[1] + L1*dir1[1], yend = mu[2] + L1*dir1[2]
+)
+pc2_seg <- data.frame(
+  x    = mu[1] - L2*dir2[1], y    = mu[2] - L2*dir2[2],
+  xend = mu[1] + L2*dir2[1], yend = mu[2] + L2*dir2[2]
+)
+lab_pc1 <- data.frame(x = pc1_seg$xend, y = pc1_seg.yend <- pc1_seg$yend)
+lab_pc2 <- data.frame(x = pc2_seg$xend, y = pc2_seg.yend <- pc2_seg$yend)
+col_pc1 <- "#1B9E77"
+col_pc2 <- "#D95F02"
+
+pca1 <- ggplot(ciudades, aes(Temperatura_media, Precipitacion_media, label = Ciudad)) +
+  geom_point(size = 2.5) +
+  ggrepel::geom_text_repel(size = 3, max.overlaps = Inf, min.segment.length = 0) +
+  geom_point(aes(x = mu[1], y = mu[2]), color = "black", size = 3, shape = 4, stroke = 1.2) +
+  geom_segment(
+    data = pc1_seg,
+    aes(x = x, y = y, xend = xend, yend = yend),
+    linewidth = 1, color = col_pc1, inherit.aes = FALSE
+  ) +
+  geom_segment(
+    data = pc2_seg,
+    aes(x = x, y = y, xend = xend, yend = yend),
+    linewidth = 1, color = col_pc2, inherit.aes = FALSE
+  ) +
+  annotate("text", x = pc1_seg$xend, y = pc1_seg$yend,
+           label = "OY1: clima general",
+           hjust = 0, vjust = 0, color = col_pc1, size = 3.5) +
+  annotate("text", x = pc2_seg$xend, y = pc2_seg$yend,
+           label = "OY2: lluvia relativa",
+           hjust = -0.05, vjust = -0.5, color = col_pc2, size = 3.5) +
+  labs(
+    x = "Temperatura media anual (°C)",
+    y = "Precipitación media anual (mm)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(plot.background = element_rect(fill = NA, color = NA))
+pca1
+```
+
+]
+
+
+---
+background-image: url(img/FONDO.png)
+background-size: cover
+class: middle
+
+.pull-left[
+
+Lo que se busca es proyectar los datos sobre un eje que reproduzca de la mejor manera la .my-red[forma] de los datos.
+
+```{r plot2, echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=5}
+pca1
+```
+]
+
+.pull-right[
+
+Lo primero que se hace es **centrar** los datos en el centroide $(\bar{X_1}, \bar{X_2})$. Después se realiza una **rotación** de manera que las .my-red[proyecciones] sean lo más parecidas posibles a los vectores originales.
+
+Los puntos proyectados sobre el primer nuevo eje $OY1$ reflejan la **combinación** de temperatura y lluvia que mejor explica las diferencias entre ciudades.
+
+ - A la izquierda del eje $OY1$ están las ciudades frías y secas, a la derecha las cálidas y húmedas.
+ 
+ El segundo eje $OY2$, ortogonal al primero, explica la variación “residual”:
+ 
+ - por encima están las ciudades con más lluvia de la esperada para su temperatura, por debajo, las que tienen menos lluvia de la esperada para su temperatura.
+
+
+En conclusión, hay mucha variación en clima general (primer eje) y poca variación en la desviación lluvia–temperatura (segundo eje)
+
+]
+
+---
+background-image: url(img/FONDO.png)
+background-size: cover
+class: middle
+
+Rotar los ejes un ángulo $\alpha$ corresponde a aplicar una transformación lineal de los datos:
+
+$$\left[ \begin{matrix}
+Y1 \\
+Y2 
+\end{matrix} \right] = \left[ \begin{matrix} 
+\cos \alpha & \sin \alpha \\
+-\sin \alpha & \cos \alpha 
+\end{matrix}\right] \left[ \begin{matrix}
+X1 \\
+X2 
+\end{matrix} \right] = \left[ \begin{matrix} 
+X1\cos \alpha + X2\sin \alpha \\
+-X1 \sin \alpha + X2 \cos \alpha 
+\end{matrix}\right]$$
+
+--
+
+Las proyecciones de los puntos sobre el eje $OY1$ son una buena aproximación de los datos ya que en la otra dirección hay poca variación. Entonces se puede usar únicamente
+$$Y1=X1\cos \alpha + X2\sin \alpha$$
+y así la nueva variable $Y1$ resume a las otras dos.
+
+---
+background-image: url(img/FONDO.png)
+background-size: cover
+class: middle
+
+.pull-left[
+![Proyección de un punto](img/cp_proyeccion.png)
+]
+
+.pull-right[
+
+Supongamos que tenemos el punto $P_i$, entonces se cumple 
+
+$$(OP_i)^2 = (OP_i^{'})^2 + (P_i P_i^{'})^2.$$
+
+La cantidad $(P_i P_i^{'})^2$ se puede ver como un error que se desea minimizar.
+
+Si sumamos sobre todas las observaciones y se divide entre $n-1$
+
+$$C = \frac{\sum_{i=1}^{n}(OP_i)^2}{n-1} = \frac{\sum_{i=1}^{n}(OP_i^{'})^2}{n-1} + \frac{\sum_{i=1}^{n}(P_i P_i^{'})^2}{n-1}.$$
+El objetivo es minimizar $\frac{\sum_{i=1}^{n}(OP_i)^2}{n-1}$.
+]
+
+---
+background-image: url(img/FONDO.png)
+background-size: cover
+class: middle
+
+La cantidad 
+
+$$\frac{\sum_{i=1}^{n}(OP_i)^2}{n-1}$$ 
+
+es fija, es decir no depende de las coordenadas. 
+
+Entonces minimizar
+
+$$\frac{\sum_{i=1}^{n}(P_i P_i^{'})^2}{n-1}$$ 
+
+es equivalente a maximizar 
+
+$$\frac{\sum_{i=1}^{n}(OP_i^{'})^2}{n-1}$$
+
+que coincide con .my-red[la varianza de las proyecciones] sobre el eje $OY1$ (ya que los datos están centrados).
+
+Entonces el ángulo de rotación que se busca es aquel que .my-red[maximice la varianza de las proyecciones].
+
+---
+
+class: middle, center, inverse
+
+.my-gold[`r fontawesome::fa("code", height = "3em")`]
+# .my-gold[Práctica:] 
+### .my-gold[PCA en R]
+
+
+
