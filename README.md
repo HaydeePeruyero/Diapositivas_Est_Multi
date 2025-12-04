@@ -8,4 +8,4 @@ Adriana Haydeé Contreras Peruyero
 
 ## [Análisis de Componentes Principales](https://haydeeperuyero.github.io/Diapositivas_Est_Multi/PCA/pca.html)
 
-## [Número de CP y Visualizaciones]((https://haydeeperuyero.github.io/Diapositivas_Est_Multi/PCA2/pca.html))
+## [Número de CP y Visualizaciones](https://haydeeperuyero.github.io/Diapositivas_Est_Multi/PCA2/pca.html)
